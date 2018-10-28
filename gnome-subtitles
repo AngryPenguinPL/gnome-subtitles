@@ -1,0 +1,73 @@
+Summary:	Subtitle editor for the GNOME desktop
+Name:		gnome-subtitles
+Version:	1.4.1
+Release:	1
+License:	GPLv2+
+Group:		Video/Editors and Converters
+URL:		http://gnome-subtitles.sourceforge.net/
+Source:		http://downloads.sourceforge.net/%name/%name-%version.tar.gz
+BuildRequires:	pkgconfig(gconf-2.0)
+BuildRequires:	pkgconfig(gstreamer-plugins-base-1.0)
+BuildRequires:	pkgconfig(gstreamer-video-1.0)
+BuildRequires:	pkgconfig(gtk+-3.0)
+BuildRequires:	pkgconfig(gtk-sharp-3.0)
+BuildRequires:	pkgconfig(mono) >= 1.1
+BuildRequires:	gnome-doc-utils
+BuildRequires:	pkgconfig(mono)
+BuildRequires:	imagemagick
+BuildRequires:	intltool >= 0.35.0
+BuildRequires:	gtk-doc
+
+Recommends:	gstreamer1.0-decoders
+
+%description
+Gnome Subtitles is a subtitle editor for the GNOME desktop. It
+supports the most common text-based subtitle formats and allows for
+subtitle editing, translation and synchronization.
+
+%prep
+%setup -q
+%autopatch -p1
+
+sed -i -e '/GNOME_COMMON_INIT/d' configure.ac
+
+%build
+# to recognize aarch64
+autoreconf -vfi
+
+%configure2_5x --disable-schemas-install
+%make_build
+
+%install
+%make_install
+
+%find_lang %{name} --with-gnome
+
+for omf in %{buildroot}%{_datadir}/omf/%{name}/%{name}-??*.omf;do 
+echo "%lang($(basename $omf|sed -e s/%{name}-// -e s/.omf//)) $(echo $omf|sed -e s!%buildroot!!)" >> %{name}.lang
+done
+
+install -d -m755 %{buildroot}{%{_iconsdir},%{_liconsdir},%{_miconsdir}}
+convert data/%{name}.svg -resize 48x48 %{buildroot}%{_liconsdir}/%{name}.png
+convert data/%{name}.svg -resize 32x32 %{buildroot}%{_iconsdir}/%{name}.png
+convert data/%{name}.svg -resize 16x16 %{buildroot}%{_miconsdir}/%{name}.png
+
+find %{buildroot} -name '*.la' -delete
+
+%preun
+%preun_uninstall_gconf_schemas %{name}
+
+%files -f %{name}.lang
+%doc AUTHORS NEWS
+%{_bindir}/%{name}
+%{_libdir}/%{name}
+%{_datadir}/applications/org.gnome.GnomeSubtitles.desktop
+%{_datadir}/metainfo/org.gnome.GnomeSubtitles.appdata.xml
+%{_datadir}/glib-2.0/schemas/org.gnome.GnomeSubtitles.gschema.xml
+%{_datadir}/pixmaps/%{name}.svg
+%{_miconsdir}/%{name}.png
+%{_iconsdir}/%{name}.png
+%{_liconsdir}/%{name}.png
+%{_mandir}/man1/%{name}.1*
+%dir %{_datadir}/omf/%{name}
+%{_datadir}/omf/%{name}/*-C.omf
